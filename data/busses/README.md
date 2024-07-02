@@ -1,5 +1,5 @@
 
-Description of the dataset's features: [bus_column_description.csv](bus_column_description.csv)
+Description of the dataset's features: [bus_column_description.md](bus_column_description.md)
 
 Training data: [train_bus_schedule.csv](train_bus_schedule.csv)
 
