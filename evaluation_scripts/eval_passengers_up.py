@@ -8,7 +8,7 @@ usage:
     python evaluation_scripts/eval_passengers_up.py --passengers_up_predictions PATH --gold_passengers_up PATH
 
 example:
-    python evaluation_scripts/eval_passengers_up.py --passengers_up_predictions predictions/passengers_up_predictions.csv --gold_passengers_up private/data/busses/y_passengers_up.csv
+    python evaluation_scripts/eval_passengers_up.py --passengers_up_predictions predictions/passengers_up_predictions.csv --gold_passengers_up private/data/HU.BER/y_passengers_up.csv
 
 """
 

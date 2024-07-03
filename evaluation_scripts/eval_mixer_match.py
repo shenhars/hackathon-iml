@@ -8,7 +8,7 @@ usage:
     python evaluation_scripts/eval_mixer_match.py --match_predictions PATH --gold_match PATH
 
 example:
-    python evaluation_scripts/eval_mixer_match.py --match_predictions predictions/match_predictions.csv --gold_match private/data/mixer/y_match.csv
+    python evaluation_scripts/eval_mixer_match.py --match_predictions predictions/match_predictions.csv --gold_match private/data/LINKED.HEB/y_match.csv
 
 """
 

@@ -8,7 +8,7 @@ usage:
     python evaluation_scripts/eval_trip_duration.py --trip_duration_predictions PATH --gold_trip_duration PATH
 
 example:
-    python evaluation_scripts/eval_trip_duration.py --trip_duration_predictions predictions/trip_duration_predictions.csv --gold_trip_duration private/data/y_trip_duration.csv
+    python evaluation_scripts/eval_trip_duration.py --trip_duration_predictions predictions/trip_duration_predictions.csv --gold_trip_duration private/HU.BER/y_trip_duration.csv
 
 """
 

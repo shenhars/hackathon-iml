@@ -8,7 +8,7 @@ usage:
     python evaluation_scripts/eval_importance_ratings.py --importance_ratings_predictions PATH --gold_importance_ratings PATH
 
 example:
-    python evaluation_scripts/eval_importance_ratings.py --importance_ratings_predictions predictions/importance_ratings_predictions.csv --gold_importance_ratings private/data/busses/y_importance_ratings.csv
+    python evaluation_scripts/eval_importance_ratings.py --importance_ratings_predictions predictions/importance_ratings_predictions.csv --gold_importance_ratings private/data/LINKED.HEB/y_importance_ratings.csv
 
 """
 
