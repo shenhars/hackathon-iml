@@ -1,1 +1,17 @@
-# https://code-with-me.global.jetbrains.com/297dCBJ9DCWJUbDa5iaUJg#p=PY&fp=770BEF441D9D32AFF437B05051FAD1CDF5B8B2AA2E8CB05DD96DC6407EAB49A2
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import *
+from sklearn.metrics import mean_squared_error
+from pprint import pprint
+
+def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: bool = True):
+    """
+    preprocess the data
+    """
+    # TODO: preprocess
+
+
+def fit_model(X: pd.DataFrame, y):
+    pass
