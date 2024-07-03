@@ -75,10 +75,7 @@ if __name__ == '__main__':
         # 6. predict the test set using the trained model
         logging.info("predicting...")
 
-        y_pred = model.predict(X_test)
-        print("DEBUG MODE: mse over test")
-        mse = mean_squared_error(y_test, y_pred)
-        print(mse)
+        y_pred = model.predict(X_test_processed)
 
         # 7. save the predictions to args.out
         logging.info("predictions saved to {}".format(args.out))
