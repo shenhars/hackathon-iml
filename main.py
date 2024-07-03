@@ -32,6 +32,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     seed = 42
+    test_size = .05
 
     # 1. load the training set (args.training_set)
     df = pd.read_csv(args.training_set, encoding='ISO-8859-8')
@@ -40,9 +41,9 @@ if __name__ == '__main__':
 
     # 2. preprocess the training set
     logging.info("preprocessing train...")
-    X_train, X_test, y_train, y_test = train_test_split(df, y, test_size=0.05, random_state=seed)
+    X_train, X_test, y_train, y_test = train_test_split(df, y, test_size=test_size, random_state=seed)
 
-    predict_passenger_boarding._preprocess_data()
+    X_train_processed = predict_passenger_boarding._preprocess_data()
 
 
     # 3. train a model
