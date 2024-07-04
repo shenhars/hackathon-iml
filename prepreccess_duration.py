@@ -11,7 +11,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     """
     df = X.drop_duplicates()
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
-             'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
+             'trip_id', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     # df = set_categoriel_feature(df)
@@ -27,16 +27,16 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     agg = aggregate(df)
     agg['direction'] = df['direction']
     # agg['line_id'] = df['line_id']
+    agg = agg[agg['trip_duration'] > 0]
     y = agg['trip_duration']
-    agg = agg.drop(['trip_duration'], axis=1)
-    print(agg)
+    agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
     # feature_evaluation(agg, y)
     return agg, y
 
 
 def get_trip_duration(df: pd.DataFrame):
     # Group by trip_id and aggregate
-    grouped = df.groupby('trip_id').agg(
+    grouped = df.groupby('trip_id_unique').agg(
         min_station_index=('station_index', 'min'),
         max_station_index=('station_index', 'max'),
         min_arrival_time=('arrival_time', 'min'),
@@ -46,7 +46,7 @@ def get_trip_duration(df: pd.DataFrame):
     # Calculate time difference
     grouped['trip_time'] = grouped['max_arrival_time'] - grouped['min_arrival_time']
     grouped['trip_time'] = grouped['trip_time'].dt.total_seconds()
-    df = pd.merge(df, grouped[['trip_time']], left_on='trip_id', right_index=True, how='left')
+    df = pd.merge(df, grouped[['trip_time']], left_on='trip_id_unique', right_index=True, how='left')
     return df
 
 
@@ -93,11 +93,12 @@ def set_categoriel_feature(df: pd.DataFrame):
 def preprocess_test(df: pd.DataFrame):
     df = df.drop_duplicates()
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
-             'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
+             'trip_id', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df.dropna()
     agg = aggregate(df)
+    agg = agg.drop(["trip_id_unique"], axis=1)
     agg['direction'] = df['direction']
     return agg
 
@@ -131,11 +132,11 @@ def aggregate(df):
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     trip_duration = df.groupby('trip_id_unique').apply(calculate_trip_duration).reset_index(name='trip_duration')
 
-    result = df.groupby('trip_id').agg(
+    result = df.groupby('trip_id_unique').agg(
         total_passengers=('passengers_up', 'sum'),
         number_of_stations=('station_index', 'count'),
     ).reset_index()
 
-    result = pd.merge(result, trip_duration, on='trip_id')
+    result = pd.merge(result, trip_duration, on='trip_id_unique')
     return result
 
