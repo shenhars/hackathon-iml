@@ -3,13 +3,14 @@ import logging
 import numpy as np
 import pandas as pd
 import predict_passenger_boarding
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import *
 from sklearn.metrics import mean_squared_error
 from pprint import pprint
 
-
+# main.py --training_set ./data/HU.BER/train_bus_schedule.csv --test_set ./data/HU.BER/train_bus_schedule.csv --out ./data/results/output1.csv --train True
 """
 usage:
     python code/main.py --training_set PATH --test_set PATH --out PATH
@@ -38,6 +39,7 @@ if __name__ == '__main__':
     is_train = args.train
     seed = 42
     test_size = .1
+    poly = PolynomialFeatures(degree=1, include_bias=False)
     model = LinearRegression()
 
 
@@ -53,6 +55,8 @@ if __name__ == '__main__':
         X_train, X_valid, y_train, y_valid = train_test_split(df, y, test_size=test_size, random_state=seed)
         X_train_processed = predict_passenger_boarding._preprocess_data(X_train, is_train=True)
         X_valid_processed = predict_passenger_boarding._preprocess_data(X_valid, is_train=True)
+        X_train_processed = poly.fit_transform(X_train_processed.reshape(-1, 1))
+        X_valid_processed = poly.fit_transform(X_valid_processed.reshape(-1, 1))
 
         # 3. train a model
         logging.info("training...")
