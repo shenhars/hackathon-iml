@@ -129,7 +129,7 @@ def aggregate(df):
     # Group by trip_id and calculate the trip duration
     df = df.loc[df["arrival_time"].dropna().index]
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
-    trip_duration = df.groupby('trip_id').apply(calculate_trip_duration).reset_index(name='trip_duration')
+    trip_duration = df.groupby('trip_id_unique').apply(calculate_trip_duration).reset_index(name='trip_duration')
 
     result = df.groupby('trip_id').agg(
         total_passengers=('passengers_up', 'sum'),
