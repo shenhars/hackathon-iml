@@ -141,7 +141,7 @@ def aggregate(df):
         total_passengers=('passengers_up', 'sum'),
         total_continue_passengers=('passengers_continue', 'sum'),
         number_of_stations=('station_index', 'count'),
-        ).reset_index()
+    ).reset_index()
 
     result = pd.merge(result, trip_duration, on='trip_id_unique')
     return result
