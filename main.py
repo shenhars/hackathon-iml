@@ -42,9 +42,9 @@ if __name__ == '__main__':
 
     print("train" if is_train else "test")
     if is_train:
-        model = LinearRegression()
-        poly = PolynomialFeatures(degree=1, include_bias=False)
-        for k in range(10):
+        for k in range(1, 11):
+            model = LinearRegression()
+            poly = PolynomialFeatures(degree=k, include_bias=False)
             # 1. load the training set (args.training_set)
             df = pd.read_csv(args.training_set, encoding='ISO-8859-8')
             X, y = df.drop("passengers_up", axis=1), df.passengers_up
