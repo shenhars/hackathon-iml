@@ -17,7 +17,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     # combine x and y
     X["passengers_up"] = y
 
-    df = X.drop_duplicates() #remove duplicates - TODO nan
+    df = X.drop_duplicates() #remove duplicates
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative', 'trip_id_unique'], axis=1, inplace=True) # remove irelevant columns
 
     df = set_categoriel_feature(df)
@@ -33,7 +33,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
 
     df.dropna()
     y = df["passengers_up"]
-    df.drop(["passengers_up"], axis=1)
+    df = df.drop(["passengers_up"], axis=1)
     return df, y
 
 
