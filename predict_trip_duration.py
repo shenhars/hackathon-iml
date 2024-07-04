@@ -260,9 +260,11 @@ def main():
 
     # save the model
     with open(f"model_task1.sav", "wb") as f:
+        pass
         pickle.dump(model, f)
 
     with open("model_task1.sav", "rb") as file:
+        pass
         model = pickle.load(file)
         df = load_data(args.test_set)
         logging.info("preprocessing test...")
