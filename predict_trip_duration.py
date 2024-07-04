@@ -1,4 +1,4 @@
-from typing import Optional
+import pickle
 from argparse import ArgumentParser
 import logging
 import numpy as np
@@ -9,8 +9,6 @@ from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 import prepreccess_duration
-
-global model
 
 def load_data(path, encoding='ISO-8859-8'):
     return pd.read_csv(path, encoding=encoding)
@@ -49,9 +47,10 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type, poly=None
     model.fit(X_train_processed, y_train)
     y_pred_on_valid = model.predict(X_valid_processed)
     mse = mean_squared_error(y_pred_on_valid, y_valid)
+    score = model.score(X_valid_processed, y_valid)
     mse = round(mse, 3)
 
-    return model, mse, y_pred_on_valid
+    return model, mse, y_pred_on_valid, score
 
 
 def main():
@@ -84,21 +83,26 @@ def main():
         X_train, X_valid, y_train, y_valid = \
                                 (np.array(X_train), np.array(X_valid), np.array(y_train), np.array(y_valid))
 
-        model, mse, y_pred_on_valid = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
+        model, mse, y_pred_on_valid, score = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
         print(f"mse={mse}")
+        print(f"score={score}")
         plot_predictions(y_valid, y_pred_on_valid, mse)
 
+        # save the model
+        with open(f"model_task1.sav", "wb") as f:
+            pickle.dump(model, f)
+
     else:
-        df = load_data(args.test_set)
-        logging.info("preprocessing test...")
-        X_test_processed = preprocess_data(df, is_train=False)
+        with open("model_task1.sav", "rb") as file:
+            model = pickle.load(file)
+            df = load_data(args.test_set)
+            logging.info("preprocessing test...")
+            X_test_processed = preprocess_data(df, is_train=False)
 
-        logging.info("predicting...")
-        y_pred = model.predict(X_test_processed)
+            logging.info("predicting...")
+            y_pred = model.predict(X_test_processed)
 
-        logging.info(f"predictions saved to {args.out}")
-        predictions = pd.DataFrame(
-            {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
-        predictions.to_csv(args.out, index=False)
-
-
+            logging.info(f"predictions saved to {args.out}")
+            predictions = pd.DataFrame(
+                {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
+            predictions.to_csv(args.out, index=False)
