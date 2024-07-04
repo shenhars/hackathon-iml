@@ -18,13 +18,12 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     X["passengers_up"] = y
 
     df = X.drop_duplicates() #remove duplicates
-    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative', 'trip_id_unique'], axis=1, inplace=True) # remove irelevant columns
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
+             'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
 
+    # df = get_trip_duration(df)
     df = set_categoriel_feature(df)
     df = bus_in_the_station(df)
-
-    #Change the arrival time estimation column from TRUE/FALSE to 1/0
-    df['arrival_is_estimated'] = df['arrival_is_estimated'].map({True: 1, False: 0})
 
     # Check if the station ID is valid (is integer)
     df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
@@ -35,6 +34,10 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     y = df["passengers_up"]
     df = df.drop(["passengers_up"], axis=1)
     return df, y
+
+# def get_trip_duration(df: pd.DataFrame):
+#     df = df..groupby(by="trip_id")
+#     print(df)
 
 
 def bus_in_the_station(df: pd.DataFrame):
@@ -76,6 +79,28 @@ def set_categoriel_feature(df: pd.DataFrame):
     df[boolean_cols] = df[boolean_cols].astype(int)
     return df
 
+
+def preprocess_test(df: pd.DataFrame):
+
+    df = df.drop_duplicates()  # remove duplicates
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative',
+             'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
+
+    # df = get_trip_duration(df)
+    df = set_categoriel_feature(df)
+    df = df.loc[df["arrival_time"].dropna().index]
+    df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
+    df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
+
+    # duration that the door was opend
+    df['door_duration'] = df.apply(
+        lambda row: row['door_closing_time'] - row['arrival_time'] if pd.notna(row['door_closing_time']) else 0,
+        axis=1)
+    df['door_duration'] = df['door_duration'].dt.total_seconds()
+
+    df = df.drop(['is_valid', 'arrival_time', 'door_closing_time'], axis=1)
+    df.dropna()
+    return df
 
 def fit_model(X: pd.DataFrame, y):
     pass
