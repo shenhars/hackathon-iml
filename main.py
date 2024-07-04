@@ -52,7 +52,7 @@ if __name__ == '__main__':
         # TODO: check if need to change rthe order of the preproccess and the split
         print(X)
         preprocess_x, preprocess_y = predict_passenger_boarding._preprocess_data(X, y)
-        print(preprocess_x, preprocess_y)
+        print(preprocess_x)
 
         logging.info("preprocessing train...")
         X_train, X_valid, y_train, y_valid = train_test_split(df, y, test_size=test_size, random_state=seed)
@@ -70,7 +70,6 @@ if __name__ == '__main__':
 
         y_pred_on_valid = model.predict(X_valid_processed)
         mse = mean_squared_error(y_pred_on_valid, y_valid)
-        print(mse)
 
 
     else:
