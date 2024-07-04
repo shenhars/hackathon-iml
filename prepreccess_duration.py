@@ -1,6 +1,8 @@
-
+import numpy as np
 import pandas as pd
 from typing import Optional
+
+from matplotlib import pyplot as plt
 
 
 def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
@@ -12,20 +14,24 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
              'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
-    df = set_categoriel_feature(df)
-    df = bus_in_the_station(df)
+    # df = set_categoriel_feature(df)
+    # df = bus_in_the_station(df)
     df = get_trip_duration(df)
 
     # Check if the station ID is valid (is integer)
     df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
     df = df[df['station_id_valid']]
-    df = df.drop(['station_id_valid', 'arrival_time'], axis=1)
+    df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
-    y = df['trip_time']
-    df = df.drop(["trip_time"], axis=1)
-    # feature_evaluation(df, y)
-    return df, y
+    agg = aggregate(df)
+    agg['direction'] = df['direction']
+    # agg['line_id'] = df['line_id']
+    y = agg['trip_duration']
+    agg = agg.drop(['trip_duration'], axis=1)
+    print(agg)
+    # feature_evaluation(agg, y)
+    return agg, y
 
 
 def get_trip_duration(df: pd.DataFrame):
@@ -85,22 +91,51 @@ def set_categoriel_feature(df: pd.DataFrame):
 
 
 def preprocess_test(df: pd.DataFrame):
-    df = df.drop_duplicates()  # remove duplicates
-    irrelevant_columns = ['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative',
-                          'trip_id_unique', 'part']
-    df.drop(irrelevant_columns, axis=1, inplace=True)  # remove irelevant columns
+    df = df.drop_duplicates()
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
+             'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
+    df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
+    df.dropna()
+    agg = aggregate(df)
+    agg['direction'] = df['direction']
+    return agg
+
+
+def feature_evaluation(X: pd.DataFrame, y):
+    for feature in X:
+        covariance = np.cov(X[feature], y)[0, 1]
+        std = (np.std(X[feature])*np.std(y))
+        correlation = 0
+        if std != 0:
+            correlation = covariance / std
+
+        plt.figure()
+        plt.scatter(X[feature], y, color='blue', label=f'{feature} Values', s=1)
+        plt.title(f'Correlation Between {feature} Values and Response\nPearson Correlation: {correlation}')
+        plt.xlabel(f'{feature} Values')
+        plt.ylabel('Response Values')
+
+        plt.show()
+
+
+def calculate_trip_duration(group):
+    first_station_time = group.loc[group['station_index'] == 1, 'arrival_time'].values[0]
+    last_station_time = group['arrival_time'].values[-1]
+    return (last_station_time - first_station_time)/ pd.Timedelta(minutes=1)
+
+
+def aggregate(df):
+    # Group by trip_id and calculate the trip duration
     df = df.loc[df["arrival_time"].dropna().index]
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
-    df = set_categoriel_feature(df)
-    df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
+    trip_duration = df.groupby('trip_id').apply(calculate_trip_duration).reset_index(name='trip_duration')
 
-    # duration that the door was opend
-    df['door_duration'] = df.apply(
-        lambda row: row['door_closing_time'] - row['arrival_time'] if pd.notna(row['door_closing_time']) else 0,
-        axis=1)
-    df['door_duration'] = df['door_duration'].dt.total_seconds()
+    result = df.groupby('trip_id').agg(
+        total_passengers=('passengers_up', 'sum'),
+        number_of_stations=('station_index', 'count'),
+    ).reset_index()
 
-    df = df.drop(['is_valid', 'door_closing_time', 'arrival_time'], axis=1)
-    df.dropna()
-    return df
+    result = pd.merge(result, trip_duration, on='trip_id')
+    return result
+
