@@ -22,6 +22,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
              'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
 
+    df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
     df = bus_in_the_station(df)
     df = get_trip_duration(df)
@@ -29,12 +30,11 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     # Check if the station ID is valid (is integer)
     df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
     df = df[df['station_id_valid']]
-    df = df.drop(['station_id_valid'], axis=1)
+    df = df.drop(['station_id_valid', 'arrival_time'], axis=1)
 
     df.dropna()
-    df['arrival_time'] = (pd.to_datetime("00:00:00", format='%H:%M:%S') - df['arrival_time']).dt.total_seconds()
     y = y.loc[df.index]
-    feature_evaluation(df, y)
+    # feature_evaluation(df, y)
     return df, y
 
 
@@ -58,7 +58,6 @@ def bus_in_the_station(df: pd.DataFrame):
     # validation of time'direction'
     # Convert time columns to datetime
     df = df.loc[df["arrival_time"].dropna().index]
-    df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
 
     # if the close time is before the arrival time- remove
@@ -87,7 +86,11 @@ def set_categoriel_feature(df: pd.DataFrame):
     parts = pd.get_dummies(df['part'], prefix='part')
     df = pd.concat([df, parts], axis=1)
 
-    df.drop(['part', 'direction', 'cluster'], axis=1, inplace=True)
+    df['arrival_hour'] = df['arrival_time'].dt.hour
+    arrival_hour_dummies = pd.get_dummies(df['arrival_hour'], prefix='hour')
+    df = pd.concat([df, arrival_hour_dummies], axis=1)
+
+    df.drop(['part', 'direction', 'cluster', 'arrival_hour'], axis=1, inplace=True)
 
     boolean_cols = df.select_dtypes(include=['bool']).columns
     df[boolean_cols] = df[boolean_cols].astype(int)
@@ -100,10 +103,9 @@ def preprocess_test(df: pd.DataFrame):
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative',
              'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
 
-    # df = get_trip_duration(df)
-    df = set_categoriel_feature(df)
     df = df.loc[df["arrival_time"].dropna().index]
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
+    df = set_categoriel_feature(df)
     df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
 
     # duration that the door was opend
@@ -113,7 +115,6 @@ def preprocess_test(df: pd.DataFrame):
     df['door_duration'] = df['door_duration'].dt.total_seconds()
 
     df = get_trip_duration(df)
-    df['arrival_time'] = (pd.to_datetime("00:00:00", format='%H:%M:%S') - df['arrival_time']).dt.total_seconds()
     df = df.drop(['is_valid', 'door_closing_time'], axis=1)
     df.dropna()
     return df
@@ -134,5 +135,7 @@ def feature_evaluation(X: pd.DataFrame, y):
         plt.ylabel('Response Values')
 
         plt.show()
+
+
 def fit_model(X: pd.DataFrame, y):
     pass
