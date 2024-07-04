@@ -1,6 +1,7 @@
 from typing import Optional
 from argparse import ArgumentParser
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -15,6 +16,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     preprocess the data
     """
     df = X.drop_duplicates()  # remove duplicates
+    df = split_into_areas(df)
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique'], axis=1, inplace=True)  # remove irrelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
@@ -41,6 +43,28 @@ def get_trip_duration(df: pd.DataFrame):
     )
     grouped['trip_time'] = (grouped['max_arrival_time'] - grouped['min_arrival_time']).dt.total_seconds()
     df = pd.merge(df, grouped[['trip_time']], left_on='trip_id', right_index=True, how='left')
+    return df
+
+def split_into_areas(df):
+    num_bins = 17
+
+    # Create bins for longitude and latitude using linspace
+    longitude_bins = np.linspace(df['longitude'].min(), df['longitude'].max(), num_bins)
+    latitude_bins = np.linspace(df['latitude'].min(), df['latitude'].max(), num_bins)
+
+    # Assign each point to a bin
+    df['longitude_bin'] = np.digitize(df['longitude'], bins=longitude_bins, right=True)
+    df['latitude_bin'] = np.digitize(df['latitude'], bins=latitude_bins, right=True)
+
+    # Combine longitude and latitude bin values to create a unique area identifier
+    df['area'] = df['longitude_bin'].astype(str) + '_' + df['latitude_bin'].astype(str)
+
+    # Convert categorical area features to one-hot encoding
+    df = pd.concat([df, pd.get_dummies(df['area'], prefix='area')], axis=1)
+
+    # Drop the original bin columns and the combined identifier
+    df = df.drop(['longitude_bin', 'latitude_bin', 'area'],axis = 1)
+
     return df
 
 def bus_in_the_station(df: pd.DataFrame):
