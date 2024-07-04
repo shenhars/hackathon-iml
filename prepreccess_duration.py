@@ -13,13 +13,13 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     """
     df = X.drop_duplicates()
     df = split_into_areas(df)
-    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
-             'trip_id', 'part'], axis=1, inplace=True)  # remove irelevant columns
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique_station',
+             'trip_id', 'part', 'cluster', 'arrival_is_estimated'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
     # df = bus_in_the_station(df)
-    df = get_trip_duration(df)
+    # df = get_trip_duration(df)
 
     # Check if the station ID is valid (is integer)
     df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
@@ -28,32 +28,31 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
 
     df.dropna()
     agg = aggregate(df)
-    agg['direction_1'] = df['direction_1']
-    agg['direction_2'] = df['direction_2']
-    agg['mekadem_nipuach_luz'] = df['mekadem_nipuach_luz']
-    agg['passengers_continue_menupach'] = df['passengers_continue_menupach']
-    # agg['line_id'] = df['line_id']
     agg = agg[agg['trip_duration'] >= 0]
+    agg['direction_1'] = df['direction_1']
     y = agg['trip_duration']
-    agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
-    feature_evaluation(agg, y)
+    # agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
+    agg = agg.drop(['trip_duration', 'trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
+                    'arrival_time', 'door_closing_time'], axis=1)
+    print(agg)
+    # feature_evaluation(agg, y)
     return agg, y
 
 
-def get_trip_duration(df: pd.DataFrame):
-    # Group by trip_id and aggregate
-    grouped = df.groupby('trip_id_unique').agg(
-        min_station_index=('station_index', 'min'),
-        max_station_index=('station_index', 'max'),
-        min_arrival_time=('arrival_time', 'min'),
-        max_arrival_time=('arrival_time', 'max')
-    )
-
-    # Calculate time difference
-    grouped['trip_time'] = grouped['max_arrival_time'] - grouped['min_arrival_time']
-    grouped['trip_time'] = grouped['trip_time'].dt.total_seconds()
-    df = pd.merge(df, grouped[['trip_time']], left_on='trip_id_unique', right_index=True, how='left')
-    return df
+# def get_trip_duration(df: pd.DataFrame):
+#     # Group by trip_id and aggregate
+#     grouped = df.groupby('trip_id_unique').agg(
+#         min_station_index=('station_index', 'min'),
+#         max_station_index=('station_index', 'max'),
+#         min_arrival_time=('arrival_time', 'min'),
+#         max_arrival_time=('arrival_time', 'max')
+#     )
+#
+#     # Calculate time difference
+#     grouped['trip_time'] = grouped['max_arrival_time'] - grouped['min_arrival_time']
+#     grouped['trip_time'] = grouped['trip_time'].dt.total_seconds()
+#     df = pd.merge(df, grouped[['trip_time']], left_on='trip_id_unique', right_index=True, how='left')
+#     return df
 
 
 def bus_in_the_station(df: pd.DataFrame):
@@ -82,6 +81,9 @@ def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
 
+    # line_ids = pd.get_dummies(df['line_id'], prefix='line_id')
+    # df = pd.concat([df, line_ids], axis=1)
+
     # clusters = pd.get_dummies(df['cluster'], prefix='cluster')
     # df = pd.concat([df, clusters], axis=1)
     #
@@ -90,8 +92,7 @@ def set_categoriel_feature(df: pd.DataFrame):
     # df = pd.concat([df, arrival_hour_dummies], axis=1)
 
     # df.drop(['direction', 'cluster', 'arrival_hour'], axis=1, inplace=True)
-    df.drop(['direction'], axis=1, inplace=True)
-
+    df.drop(['direction', 'line_id'], axis=1, inplace=True)
 
     boolean_cols = df.select_dtypes(include=['bool']).columns
     df[boolean_cols] = df[boolean_cols].astype(int)
@@ -158,12 +159,15 @@ def aggregate(df):
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     trip_duration = df.groupby('trip_id_unique').apply(calculate_trip_duration).reset_index(name='trip_duration')
 
+    result1 = df.groupby('trip_id_unique').agg(lambda x: x.iloc[0]).reset_index()
     result = df.groupby('trip_id_unique').agg(
         total_passengers=('passengers_up', 'sum'),
         total_continue_passengers=('passengers_continue', 'sum'),
-        number_of_stations=('station_index', 'count'),
+        number_of_stations=('station_index', 'count')
+        # direction1=('direction_1', 'first')
     ).reset_index()
 
     result = pd.merge(result, trip_duration, on='trip_id_unique')
+    result= pd.merge(result, result1, on='trip_id_unique')
     return result
 
