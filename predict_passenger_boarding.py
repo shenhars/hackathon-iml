@@ -29,7 +29,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
 
     df = X.drop_duplicates() #remove duplicates
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
-             'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
+             'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
@@ -92,9 +92,6 @@ def set_categoriel_feature(df: pd.DataFrame):
     clusters = pd.get_dummies(df['cluster'], prefix='cluster')
     df = pd.concat([df, clusters], axis=1)
 
-    parts = pd.get_dummies(df['part'], prefix='part')
-    df = pd.concat([df, parts], axis=1)
-
     df['arrival_hour'] = df['arrival_time'].dt.hour
     arrival_hour_dummies = pd.get_dummies(df['arrival_hour'], prefix='hour')
     df = pd.concat([df, arrival_hour_dummies], axis=1)
@@ -109,7 +106,7 @@ def set_categoriel_feature(df: pd.DataFrame):
 def preprocess_test(df: pd.DataFrame):
     df = df.drop_duplicates()  # remove duplicates
     irrelevant_columns = ['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative',
-                          'trip_id_unique']
+                          'trip_id_unique', 'part']
     df.drop(irrelevant_columns, axis=1, inplace=True)  # remove irelevant columns
 
     df = df.loc[df["arrival_time"].dropna().index]
