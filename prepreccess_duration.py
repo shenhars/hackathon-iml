@@ -14,7 +14,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
              'trip_id', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
-    # df = set_categoriel_feature(df)
+    df = set_categoriel_feature(df)
     # df = bus_in_the_station(df)
     df = get_trip_duration(df)
 
@@ -25,12 +25,15 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
 
     df.dropna()
     agg = aggregate(df)
-    agg['direction'] = df['direction']
+    agg['direction_1'] = df['direction_1']
+    agg['direction_2'] = df['direction_2']
+    agg['mekadem_nipuach_luz'] = df['mekadem_nipuach_luz']
+    agg['passengers_continue_menupach'] = df['passengers_continue_menupach']
     # agg['line_id'] = df['line_id']
     agg = agg[agg['trip_duration'] > 0]
     y = agg['trip_duration']
     agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
-    # feature_evaluation(agg, y)
+    feature_evaluation(agg, y)
     return agg, y
 
 
@@ -76,14 +79,16 @@ def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
 
-    clusters = pd.get_dummies(df['cluster'], prefix='cluster')
-    df = pd.concat([df, clusters], axis=1)
+    # clusters = pd.get_dummies(df['cluster'], prefix='cluster')
+    # df = pd.concat([df, clusters], axis=1)
+    #
+    # df['arrival_hour'] = df['arrival_time'].dt.hour
+    # arrival_hour_dummies = pd.get_dummies(df['arrival_hour'], prefix='hour')
+    # df = pd.concat([df, arrival_hour_dummies], axis=1)
 
-    df['arrival_hour'] = df['arrival_time'].dt.hour
-    arrival_hour_dummies = pd.get_dummies(df['arrival_hour'], prefix='hour')
-    df = pd.concat([df, arrival_hour_dummies], axis=1)
+    # df.drop(['direction', 'cluster', 'arrival_hour'], axis=1, inplace=True)
+    df.drop(['direction'], axis=1, inplace=True)
 
-    df.drop(['direction', 'cluster', 'arrival_hour'], axis=1, inplace=True)
 
     boolean_cols = df.select_dtypes(include=['bool']).columns
     df[boolean_cols] = df[boolean_cols].astype(int)
@@ -134,6 +139,7 @@ def aggregate(df):
 
     result = df.groupby('trip_id_unique').agg(
         total_passengers=('passengers_up', 'sum'),
+        total_continue_passengers=('passengers_continue', 'sum'),
         number_of_stations=('station_index', 'count'),
     ).reset_index()
 
