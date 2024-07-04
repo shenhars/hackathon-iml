@@ -5,8 +5,8 @@ from sklearn.metrics import mean_squared_error
 
 """
 usage:
-    python evaluation_scripts/eval_passengers_up.py --passengers_up_predictions PATH --gold_passengers_up PATH
-
+    python evaluation_scripts/eval_passengers_up.py --passengers_up_predictions ./data/results/output1.csv --gold_passengers_up ./data/HU.BER/X_passengers_up.csv
+--training_set ./data/HU.BER/train_bus_schedule.csv --test_set ./data/HU.BER/X_passengers_up.csv --out ./data/results/output1.csv --train True --model_type xgb --bootstrap False
 example:
     python evaluation_scripts/eval_passengers_up.py --passengers_up_predictions predictions/passengers_up_predictions.csv --gold_passengers_up private/data/HU.BER/y_passengers_up.csv
 

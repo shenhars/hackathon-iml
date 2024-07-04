@@ -243,37 +243,35 @@ def main():
 
     print("train" if is_train else "test")
 
-    if is_train:
-        df = load_data(args.training_set)
+    df = load_data(args.training_set)
 
-        logging.info("preprocessing train...")
-        preprocess_x, preprocess_y = preprocess_data(df)
-        X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size,
-                                                              random_state=seed)
+    logging.info("preprocessing train...")
+    preprocess_x, preprocess_y = preprocess_data(df)
+    X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size,
+                                                          random_state=seed)
 
-        X_train, X_valid, y_train, y_valid = \
-                                (np.array(X_train), np.array(X_valid), np.array(y_train), np.array(y_valid))
+    X_train, X_valid, y_train, y_valid = \
+                            (np.array(X_train), np.array(X_valid), np.array(y_train), np.array(y_valid))
 
-        model, mse, y_pred_on_valid, score = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
-        print(f"mse={mse}")
-        print(f"score={score}")
-        plot_variance_between_y_true_and_y_pred(y_valid, y_pred_on_valid)
+    model, mse, y_pred_on_valid, score = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
+    print(f"mse={mse}")
+    print(f"score={score}")
+    plot_variance_between_y_true_and_y_pred(y_valid, y_pred_on_valid)
 
-        # save the model
-        with open(f"model_task1.sav", "wb") as f:
-            pickle.dump(model, f)
+    # save the model
+    with open(f"model_task1.sav", "wb") as f:
+        pickle.dump(model, f)
 
-    else:
-        with open("model_task1.sav", "rb") as file:
-            model = pickle.load(file)
-            df = load_data(args.test_set)
-            logging.info("preprocessing test...")
-            X_test_processed = preprocess_data(df, is_train=False)
+    with open("model_task1.sav", "rb") as file:
+        model = pickle.load(file)
+        df = load_data(args.test_set)
+        logging.info("preprocessing test...")
+        X_test_processed = preprocess_data(df, is_train=False)
 
-            logging.info("predicting...")
-            y_pred = model.predict(X_test_processed)
+        logging.info("predicting...")
+        y_pred = model.predict(X_test_processed)
 
-            logging.info(f"predictions saved to {args.out}")
-            predictions = pd.DataFrame(
-                {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
-            predictions.to_csv(args.out, index=False)
+        logging.info(f"predictions saved to {args.out}")
+        predictions = pd.DataFrame(
+            {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
+        predictions.to_csv(args.out, index=False)

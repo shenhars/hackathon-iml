@@ -21,7 +21,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     """
     df = X.drop_duplicates()  # remove duplicates
     df = split_into_areas(df)
-    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique'], axis=1, inplace=True)  # remove irrelevant columns
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irrelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categorical_features(df)
@@ -80,20 +80,21 @@ def set_categorical_features(df: pd.DataFrame):
     df = pd.get_dummies(df, columns=['direction', 'cluster'], prefix=['direction', 'cluster'])
     df['arrival_hour'] = df['arrival_time'].dt.hour
     df = pd.get_dummies(df, columns=['arrival_hour'], prefix='hour')
-    df.drop(['part'], axis=1, inplace=True)
     return df
 
 def preprocess_test(df: pd.DataFrame):
-    df = df.drop_duplicates()
-    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique', 'part'], axis=1, inplace=True)
-    df = df.loc[df["arrival_time"].dropna().index]
+    df = split_into_areas(df)
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irrelevant columns
+
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categorical_features(df)
+    df = df.loc[df["arrival_time"].dropna().index]
     df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
     df['door_duration'] = (df['door_closing_time'] - df['arrival_time']).dt.total_seconds()
+    df = df.drop([ 'door_closing_time'], axis=1)
     df = get_trip_duration(df)
-    df = df.drop(['door_closing_time'], axis=1)
-    df.dropna(inplace=True)
+    df = df.drop(['arrival_time'], axis=1)
+
     return df
 
 def load_data(path, encoding='ISO-8859-8'):
@@ -162,28 +163,24 @@ def main():
 
     print("train" if is_train else "test")
 
-    if is_train:
-        df = load_data(args.training_set)
-        X, y = df.drop("passengers_up", axis=1), df.passengers_up
+    df = load_data(args.training_set)
+    X, y = df.drop("passengers_up", axis=1), df.passengers_up
 
-        preprocess_x, preprocess_y = _preprocess_data(X, y)
-        X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size, random_state=seed)
+    preprocess_x, preprocess_y = _preprocess_data(X, y)
+    X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size, random_state=seed)
 
-        model, mse, y_pred_on_valid = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
-        print(f"MSE: {mse}")
+    model, mse, y_pred_on_valid = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
+    print(f"MSE: {mse}")
 
-        with open(f"model_task1_{args.model_type}.sav", "wb") as f:
-            # pickle.dump(model, f)
-            pass
+    with open(f"model_task1_{args.model_type}.sav", "wb") as f:
+        pickle.dump(model, f)
+    with open(f"model_task1_{args.model_type}.sav", "rb") as file:
+        model = pickle.load(file)
 
-    else:
-        with open(f"model_task1_{args.model_type}.sav", "rb") as file:
-            model = pickle.load(file)
+        df = load_data(args.test_set)
+        X_test_processed = preprocess_test(df)
 
-            df = load_data(args.test_set)
-            X_test_processed = preprocess_test(df)
+        y_pred = model.predict(X_test_processed)
 
-            y_pred = model.predict(X_test_processed)
-
-            predictions = pd.DataFrame({'trip_id_unique_station': df['trip_id_unique_station'], 'passenger_up': y_pred})
-            predictions.to_csv(args.out, index=False)
+        predictions = pd.DataFrame({'trip_id_unique_station': df['trip_id_unique_station'], 'passenger_up': y_pred})
+        predictions.to_csv(args.out, index=False)

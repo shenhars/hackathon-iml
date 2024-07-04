@@ -14,5 +14,5 @@ for example:
 if __name__ == '__main__':
     print("TASK 1")
     predict_passenger_boarding.main()
-    print("TASK 2")
-    predict_trip_duration.main()
+    # print("TASK 2")
+    # predict_trip_duration.main()
