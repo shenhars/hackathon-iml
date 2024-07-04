@@ -42,7 +42,7 @@ if __name__ == '__main__':
     poly = PolynomialFeatures(degree=1, include_bias=False)
     model = LinearRegression()
 
-
+    print(is_train)
     if is_train:
         # 1. load the training set (args.training_set)
         df = pd.read_csv(args.training_set, encoding='ISO-8859-8')
@@ -50,6 +50,9 @@ if __name__ == '__main__':
 
         # 2. preprocess the training set
         # TODO: check if need to change rthe order of the preproccess and the split
+        print(X)
+        preprocess_x, preprocess_y = predict_passenger_boarding._preprocess_data(X, y)
+        print(preprocess_x, preprocess_y)
 
         logging.info("preprocessing train...")
         X_train, X_valid, y_train, y_valid = train_test_split(df, y, test_size=test_size, random_state=seed)
@@ -67,6 +70,7 @@ if __name__ == '__main__':
 
         y_pred_on_valid = model.predict(X_valid_processed)
         mse = mean_squared_error(y_pred_on_valid, y_valid)
+        print(mse)
 
 
     else:
