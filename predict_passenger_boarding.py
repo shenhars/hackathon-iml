@@ -4,12 +4,16 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+
+from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 import xgboost as xgb
 import lightgbm as lgb
+from sklearn.preprocessing import StandardScaler
+
 
 def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: bool = True):
     """
@@ -46,24 +50,20 @@ def get_trip_duration(df: pd.DataFrame):
     return df
 
 def split_into_areas(df):
-    num_bins = 17
+    # Standardize the longitude and latitude
+    scaler = StandardScaler()
+    df[['longitude_std', 'latitude_std']] = scaler.fit_transform(df[['longitude', 'latitude']])
 
-    # Create bins for longitude and latitude using linspace
-    longitude_bins = np.linspace(df['longitude'].min(), df['longitude'].max(), num_bins)
-    latitude_bins = np.linspace(df['latitude'].min(), df['latitude'].max(), num_bins)
+    # Apply K-Means clustering
+    num_clusters = 100
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0)
+    df['cluster_'] = kmeans.fit_predict(df[['longitude_std', 'latitude_std']])
 
-    # Assign each point to a bin
-    df['longitude_bin'] = np.digitize(df['longitude'], bins=longitude_bins, right=True)
-    df['latitude_bin'] = np.digitize(df['latitude'], bins=latitude_bins, right=True)
+    # Convert cluster labels to one-hot encoding
+    df = pd.concat([df, pd.get_dummies(df['cluster_'], prefix='cluster')], axis=1)
 
-    # Combine longitude and latitude bin values to create a unique area identifier
-    df['area'] = df['longitude_bin'].astype(str) + '_' + df['latitude_bin'].astype(str)
-
-    # Convert categorical area features to one-hot encoding
-    df = pd.concat([df, pd.get_dummies(df['area'], prefix='area')], axis=1)
-
-    # Drop the original bin columns and the combined identifier
-    df = df.drop(['longitude_bin', 'latitude_bin', 'area'],axis = 1)
+    # Drop unnecessary columns
+    df = df.drop(['longitude_std', 'latitude_std', 'cluster_'],axis = 1)
 
     return df
 

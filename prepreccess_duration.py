@@ -3,6 +3,8 @@ import pandas as pd
 from typing import Optional
 
 from matplotlib import pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 
 def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
@@ -10,6 +12,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     preprocess the data
     """
     df = X.drop_duplicates()
+    df = split_into_areas(df)
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
              'trip_id', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
@@ -122,8 +125,26 @@ def feature_evaluation(X: pd.DataFrame, y):
         plt.xlabel(f'{feature} Values')
         plt.ylabel('Response Values')
 
-        plt.show()
+        # plt.show()
 
+
+def split_into_areas(df):
+    # Standardize the longitude and latitude
+    scaler = StandardScaler()
+    df[['longitude_std', 'latitude_std']] = scaler.fit_transform(df[['longitude', 'latitude']])
+
+    # Apply K-Means clustering
+    num_clusters = 100
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0)
+    df['cluster_'] = kmeans.fit_predict(df[['longitude_std', 'latitude_std']])
+
+    # Convert cluster labels to one-hot encoding
+    df = pd.concat([df, pd.get_dummies(df['cluster_'], prefix='cluster')], axis=1)
+
+    # Drop unnecessary columns
+    df = df.drop(['longitude_std', 'latitude_std', 'cluster_'],axis = 1)
+
+    return df
 
 def calculate_trip_duration(group):
     first_station_time = group.loc[group['station_index'] == 1, 'arrival_time'].values[0]
