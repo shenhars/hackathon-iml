@@ -15,15 +15,15 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     preprocess the data
     """
     # combine x and y
-    X["passengers_up"] = y
+    # X["passengers_up"] = y
 
     df = X.drop_duplicates() #remove duplicates
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
              'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
 
-    # df = get_trip_duration(df)
     df = set_categoriel_feature(df)
     df = bus_in_the_station(df)
+    df = get_trip_duration(df)
 
     # Check if the station ID is valid (is integer)
     df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
@@ -31,13 +31,25 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
-    y = df["passengers_up"]
-    df = df.drop(["passengers_up"], axis=1)
+    df = df.drop(["passengers_up", 'arrival_time'], axis=1)
+    y = y.loc[df.index]
     return df, y
 
-# def get_trip_duration(df: pd.DataFrame):
-#     df = df..groupby(by="trip_id")
-#     print(df)
+
+def get_trip_duration(df: pd.DataFrame):
+    # Group by trip_id and aggregate
+    grouped = df.groupby('trip_id').agg(
+        min_station_index=('station_index', 'min'),
+        max_station_index=('station_index', 'max'),
+        min_arrival_time=('arrival_time', 'min'),
+        max_arrival_time=('arrival_time', 'max')
+    )
+
+    # Calculate time difference
+    grouped['trip_time'] = grouped['max_arrival_time'] - grouped['min_arrival_time']
+    grouped['trip_time'] = grouped['trip_time'].dt.total_seconds()
+    df = pd.merge(df, grouped[['trip_time']], left_on='trip_id', right_index=True, how='left')
+    return df
 
 
 def bus_in_the_station(df: pd.DataFrame):
@@ -59,7 +71,7 @@ def bus_in_the_station(df: pd.DataFrame):
         axis=1)
     df['door_duration'] = df['door_duration'].dt.total_seconds()
 
-    df = df.drop(['is_valid', 'arrival_time', 'door_closing_time'], axis=1)
+    df = df.drop(['is_valid', 'door_closing_time'], axis=1)
     return df
 
 
@@ -98,6 +110,7 @@ def preprocess_test(df: pd.DataFrame):
         axis=1)
     df['door_duration'] = df['door_duration'].dt.total_seconds()
 
+    df = get_trip_duration(df)
     df = df.drop(['is_valid', 'arrival_time', 'door_closing_time'], axis=1)
     df.dropna()
     return df
