@@ -53,10 +53,13 @@ if __name__ == '__main__':
 
         logging.info("preprocessing train...")
         X_train, X_valid, y_train, y_valid = train_test_split(df, y, test_size=test_size, random_state=seed)
-        X_train_processed = predict_passenger_boarding._preprocess_data(X_train, is_train=True)
-        X_valid_processed = predict_passenger_boarding._preprocess_data(X_valid, is_train=True)
-        X_train_processed = poly.fit_transform(X_train_processed.reshape(-1, 1))
-        X_valid_processed = poly.fit_transform(X_valid_processed.reshape(-1, 1))
+        # X_train_processed = predict_passenger_boarding._preprocess_data(X_train, is_train=True)
+        # X_valid_processed = predict_passenger_boarding._preprocess_data(X_valid, is_train=True)
+        # X_train_processed = poly.fit_transform(X_train_processed.reshape(-1, 1))
+        # X_valid_processed = poly.fit_transform(X_valid_processed.reshape(-1, 1))
+        X_train, X_valid = np.array(X_train), np.array(X_valid)
+        X_train_processed = poly.fit_transform(X_train.reshape(-1, 1))
+        X_valid_processed = poly.fit_transform(X_valid.reshape(-1, 1))
 
         # 3. train a model
         logging.info("training...")
