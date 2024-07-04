@@ -18,10 +18,11 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     X["passengers_up"] = y
 
     df = X.drop_duplicates() #remove duplicates - TODO nan
-    df.drop(['latitude', 'longitude', 'station_name', 'cluster', 'alternative', 'part'], axis=1, inplace=True) # remove irelevant columns
+    df.drop(['latitude', 'longitude', 'station_name', 'cluster', 'alternative', 'part', 'trip_id_unique_station', 'trip_id_unique'], axis=1, inplace=True) # remove irelevant columns
     directions = pd.get_dummies(df['direction'], prefix='direction_1') #add first direction
     df = pd.concat([df, directions], axis=1)
     df.drop('direction', axis=1, inplace=True)
+    # df['arrival_is_estimated'] = df['arrival_is_estimated'].map({True: 1, False: 0})
 
     #validation of time
     #Convert time columns to datetime
