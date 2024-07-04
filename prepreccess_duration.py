@@ -24,8 +24,6 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
-    # y = df['trip_time']
-    # df = df.drop(["trip_time"], axis=1)
     agg = aggregate(df)
     agg['direction'] = df['direction']
     # agg['line_id'] = df['line_id']
@@ -93,25 +91,15 @@ def set_categoriel_feature(df: pd.DataFrame):
 
 
 def preprocess_test(df: pd.DataFrame):
-    df = df.drop_duplicates()  # remove duplicates
-    irrelevant_columns = ['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative',
-                          'trip_id_unique', 'part']
-    df.drop(irrelevant_columns, axis=1, inplace=True)  # remove irelevant columns
+    df = df.drop_duplicates()
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
+             'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
 
-    df = df.loc[df["arrival_time"].dropna().index]
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
-    df = set_categoriel_feature(df)
-    df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
-
-    # duration that the door was opend
-    df['door_duration'] = df.apply(
-        lambda row: row['door_closing_time'] - row['arrival_time'] if pd.notna(row['door_closing_time']) else 0,
-        axis=1)
-    df['door_duration'] = df['door_duration'].dt.total_seconds()
-
-    df = df.drop(['is_valid', 'door_closing_time', 'arrival_time'], axis=1)
     df.dropna()
-    return df
+    agg = aggregate(df)
+    agg['direction'] = df['direction']
+    return agg
 
 
 def feature_evaluation(X: pd.DataFrame, y):
