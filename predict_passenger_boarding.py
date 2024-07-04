@@ -15,7 +15,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     preprocess the data
     """
     # combine x and y
-    X["passengers_up"] = y
+    # X["passengers_up"] = y
 
     df = X.drop_duplicates() #remove duplicates
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
@@ -31,8 +31,8 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
-    y = df["passengers_up"]
     df = df.drop(["passengers_up", 'arrival_time'], axis=1)
+    y = y.loc[df.index]
     return df, y
 
 
