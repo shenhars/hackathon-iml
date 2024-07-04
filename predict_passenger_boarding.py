@@ -16,7 +16,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     """
     df = X.drop_duplicates() #remove duplicates
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
-             'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
+             'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
@@ -166,6 +166,7 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type, poly=None
 
     logging.info("training...")
     model.fit(X_train_processed, y_train)
+    # y_pred_on_valid = model.predict(X_valid_processed)
     y_pred_on_valid = model.predict(X_valid_processed)
     mse = mean_squared_error(y_pred_on_valid, y_valid)
     mse = round(mse, 3)
