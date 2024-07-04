@@ -39,36 +39,33 @@ if __name__ == '__main__':
     is_train = args.train
     seed = 42
     test_size = .1
-    poly = PolynomialFeatures(degree=1, include_bias=False)
-    model = LinearRegression()
 
-    print(is_train)
+    print("train" if is_train else "test")
     if is_train:
-        # 1. load the training set (args.training_set)
-        df = pd.read_csv(args.training_set, encoding='ISO-8859-8')
-        X, y = df.drop("passengers_up", axis=1), df.passengers_up
+        model = LinearRegression()
+        poly = PolynomialFeatures(degree=1, include_bias=False)
+        for k in range(10):
+            # 1. load the training set (args.training_set)
+            df = pd.read_csv(args.training_set, encoding='ISO-8859-8')
+            X, y = df.drop("passengers_up", axis=1), df.passengers_up
 
-        # 2. preprocess the training set
-        # TODO: check if need to change rthe order of the preproccess and the split
-        preprocess_x, preprocess_y = predict_passenger_boarding._preprocess_data(X, y)
-        print(preprocess_x)
+            # 2. preprocess the training set
+            # TODO: check if need to change rthe order of the preproccess and the split
+            preprocess_x, preprocess_y = predict_passenger_boarding._preprocess_data(X, y)
+            print(preprocess_x)
 
-        logging.info("preprocessing train...")
-        X_train, X_valid, y_train, y_valid = train_test_split(df, y, test_size=test_size, random_state=seed)
-        # X_train_processed = predict_passenger_boarding._preprocess_data(X_train, is_train=True)
-        # X_valid_processed = predict_passenger_boarding._preprocess_data(X_valid, is_train=True)
-        X_train_processed = poly.fit_transform(X_train_processed.reshape(-1, 1))
-        X_valid_processed = poly.fit_transform(X_valid_processed.reshape(-1, 1))
-        X_train, X_valid = np.array(X_train), np.array(X_valid)
-        X_train_processed = poly.fit_transform(X_train.reshape(-1, 1))
-        X_valid_processed = poly.fit_transform(X_valid.reshape(-1, 1))
+            logging.info("preprocessing train...")
+            X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size, random_state=seed)
+            X_train, X_valid = np.array(X_train), np.array(X_valid)
+            X_train_processed = poly.fit_transform(X_train)
+            X_valid_processed = poly.fit_transform(X_valid)
+            #3. train a model
+            logging.info("training...")
+            model.fit(X_train_processed, y_train)
 
-        #3. train a model
-        logging.info("training...")
-        model.fit(X_train_processed, y_train)
-
-        y_pred_on_valid = model.predict(X_valid_processed)
-        mse = mean_squared_error(y_pred_on_valid, y_valid)
+            y_pred_on_valid = model.predict(X_valid_processed)
+            mse = mean_squared_error(y_pred_on_valid, y_valid)
+            print(mse)
 
 
     else:
