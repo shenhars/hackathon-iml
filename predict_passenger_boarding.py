@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from typing import Optional
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import *
@@ -31,8 +32,9 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
-    df = df.drop(["passengers_up", 'arrival_time'], axis=1)
+    df['arrival_time'] = (pd.to_datetime("00:00:00", format='%H:%M:%S') - df['arrival_time']).dt.total_seconds()
     y = y.loc[df.index]
+    feature_evaluation(df, y)
     return df, y
 
 
@@ -111,9 +113,26 @@ def preprocess_test(df: pd.DataFrame):
     df['door_duration'] = df['door_duration'].dt.total_seconds()
 
     df = get_trip_duration(df)
-    df = df.drop(['is_valid', 'arrival_time', 'door_closing_time'], axis=1)
+    df['arrival_time'] = (pd.to_datetime("00:00:00", format='%H:%M:%S') - df['arrival_time']).dt.total_seconds()
+    df = df.drop(['is_valid', 'door_closing_time'], axis=1)
     df.dropna()
     return df
 
+
+def feature_evaluation(X: pd.DataFrame, y):
+    for feature in X:
+        covariance = np.cov(X[feature], y)[0, 1]
+        std = (np.std(X[feature])*np.std(y))
+        correlation = 0
+        if std != 0:
+            correlation = covariance / std
+
+        plt.figure()
+        plt.scatter(X[feature], y, color='blue', label=f'{feature} Values', s=1)
+        plt.title(f'Correlation Between {feature} Values and Response\nPearson Correlation: {correlation}')
+        plt.xlabel(f'{feature} Values')
+        plt.ylabel('Response Values')
+
+        plt.show()
 def fit_model(X: pd.DataFrame, y):
     pass
