@@ -64,8 +64,8 @@ def bus_in_the_station(df: pd.DataFrame):
 def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
-    stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
-    df = pd.concat([df, stations_ids], axis=1)
+    # stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
+    # df = pd.concat([df, stations_ids], axis=1)
 
     df.drop(['direction', 'line_id'], axis=1, inplace=True)
 
@@ -85,7 +85,7 @@ def preprocess_test(df: pd.DataFrame):
 
     df.dropna()
     agg = aggregate_test(df)
-    agg = agg.drop(['trip_duration', 'trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
+    agg = agg.drop(['trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
                     'arrival_time', 'door_closing_time', 'station_id'], axis=1)
     return agg
 
@@ -113,7 +113,7 @@ def split_into_areas(df):
     df[['longitude_std', 'latitude_std']] = scaler.fit_transform(df[['longitude', 'latitude']])
 
     # Apply K-Means clustering
-    num_clusters = 100
+    num_clusters = 5
     kmeans = KMeans(n_clusters=num_clusters, random_state=0)
     df['cluster_'] = kmeans.fit_predict(df[['longitude_std', 'latitude_std']])
 
@@ -273,5 +273,5 @@ def main():
 
         logging.info(f"predictions saved to {args.out}")
         predictions = pd.DataFrame(
-            {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
+            {'trip_id_unique': X_test_processed['trip_id_unique'], 'trip_duration_in_minutes': y_pred})
         predictions.to_csv(args.out, index=False)

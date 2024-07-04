@@ -55,7 +55,7 @@ def split_into_areas(df):
     df[['longitude_std', 'latitude_std']] = scaler.fit_transform(df[['longitude', 'latitude']])
 
     # Apply K-Means clustering
-    num_clusters = 100
+    num_clusters = 25
     kmeans = KMeans(n_clusters=num_clusters, random_state=0)
     df['cluster_'] = kmeans.fit_predict(df[['longitude_std', 'latitude_std']])
 
