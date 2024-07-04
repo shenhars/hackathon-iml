@@ -24,8 +24,6 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
-    # df = bus_in_the_station(df)
-    # df = get_trip_duration(df)
 
     # Check if the station ID is valid (is integer)
     df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
@@ -33,15 +31,11 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
-    agg = aggregate(df)
+    agg = aggregate_train(df)
     agg = agg[agg['trip_duration'] >= 0]
-    agg['direction_1'] = df['direction_1']
     y = agg['trip_duration']
-    # agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
     agg = agg.drop(['trip_duration', 'trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
                     'arrival_time', 'door_closing_time', 'station_id'], axis=1)
-    print(agg)
-    # feature_evaluation(agg, y)
     return agg, y
 
 
@@ -72,17 +66,7 @@ def set_categoriel_feature(df: pd.DataFrame):
     df = pd.concat([df, directions], axis=1)
     stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
     df = pd.concat([df, stations_ids], axis=1)
-    # line_ids = pd.get_dummies(df['line_id'], prefix='line_id')
-    # df = pd.concat([df, line_ids], axis=1)
 
-    # clusters = pd.get_dummies(df['cluster'], prefix='cluster')
-    # df = pd.concat([df, clusters], axis=1)
-    #
-    # df['arrival_hour'] = df['arrival_time'].dt.hour
-    # arrival_hour_dummies = pd.get_dummies(df['arrival_hour'], prefix='hour')
-    # df = pd.concat([df, arrival_hour_dummies], axis=1)
-
-    # df.drop(['direction', 'cluster', 'arrival_hour'], axis=1, inplace=True)
     df.drop(['direction', 'line_id'], axis=1, inplace=True)
 
     boolean_cols = df.select_dtypes(include=['bool']).columns
@@ -92,14 +76,17 @@ def set_categoriel_feature(df: pd.DataFrame):
 
 def preprocess_test(df: pd.DataFrame):
     df = df.drop_duplicates()
-    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
-             'trip_id', 'part'], axis=1, inplace=True)  # remove irelevant columns
+    df = split_into_areas(df)
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique_station',
+             'trip_id', 'part', 'cluster', 'arrival_is_estimated'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
+    df = set_categoriel_feature(df)
+
     df.dropna()
-    agg = aggregate(df)
-    agg = agg.drop(["trip_id_unique"], axis=1)
-    agg['direction'] = df['direction']
+    agg = aggregate_test(df)
+    agg = agg.drop(['trip_duration', 'trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
+                    'arrival_time', 'door_closing_time', 'station_id'], axis=1)
     return agg
 
 
@@ -145,7 +132,7 @@ def calculate_trip_duration(group):
     return (last_station_time - first_station_time)/ pd.Timedelta(minutes=1)
 
 
-def aggregate(df):
+def aggregate_train(df):
     # Group by trip_id and calculate the trip duration
     df = df.loc[df["arrival_time"].dropna().index]
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
@@ -164,6 +151,19 @@ def aggregate(df):
     return result
 
 
+def aggregate_test(df):
+    # Group by trip_id and calculate the trip duration
+    result1 = df.groupby('trip_id_unique').agg(lambda x: x.iloc[0]).reset_index()
+    result = df.groupby('trip_id_unique').agg(
+        total_passengers=('passengers_up', 'sum'),
+        total_continue_passengers=('passengers_continue', 'sum'),
+        number_of_stations=('station_index', 'count')
+    ).reset_index()
+
+    result = pd.merge(result, result1, on='trip_id_unique')
+    return result
+
+
 def load_data(path, encoding='ISO-8859-8'):
     return pd.read_csv(path, encoding=encoding)
 
@@ -171,7 +171,7 @@ def load_data(path, encoding='ISO-8859-8'):
 def preprocess_data(X, is_train=True):
     if is_train:
         return _preprocess_data(X, is_train=True)
-    return preprocess_test(X, is_train=False)
+    return preprocess_test(X)
 
 
 def plot_predictions(y_true, y_pred, mse):
@@ -223,7 +223,7 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type, poly=None
     mse = mean_squared_error(y_valid, y_pred_on_valid)
     mse = round(mse, 3)
 
-    return best_model, mse, y_pred_on_valid
+    return best_model, mse, y_pred_on_valid, mse
 
 
 def main():
@@ -248,9 +248,9 @@ def main():
 
         logging.info("preprocessing train...")
         preprocess_x, preprocess_y = preprocess_data(df)
-
         X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size,
                                                               random_state=seed)
+
         X_train, X_valid, y_train, y_valid = \
                                 (np.array(X_train), np.array(X_valid), np.array(y_train), np.array(y_valid))
 

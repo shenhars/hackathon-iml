@@ -171,7 +171,6 @@ def main():
 
         model, mse, y_pred_on_valid = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
         print(f"MSE: {mse}")
-        (y_valid, y_pred_on_valid, 0, mse)
 
         with open(f"model_task1_{args.model_type}.sav", "wb") as f:
             # pickle.dump(model, f)
