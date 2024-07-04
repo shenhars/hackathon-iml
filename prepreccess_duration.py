@@ -33,7 +33,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     y = agg['trip_duration']
     # agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
     agg = agg.drop(['trip_duration', 'trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
-                    'arrival_time', 'door_closing_time'], axis=1)
+                    'arrival_time', 'door_closing_time', 'station_id'], axis=1)
     print(agg)
     # feature_evaluation(agg, y)
     return agg, y
@@ -80,7 +80,8 @@ def bus_in_the_station(df: pd.DataFrame):
 def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
-
+    stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
+    df = pd.concat([df, stations_ids], axis=1)
     # line_ids = pd.get_dummies(df['line_id'], prefix='line_id')
     # df = pd.concat([df, line_ids], axis=1)
 

@@ -32,7 +32,8 @@ def plot_predictions(y_true, y_pred, mse):
     plt.show()
 
 def plot_variance_between_y_true_and_y_pred(y_true, y_pred):
-    plt.plot(np.abs(y_true - y_pred), color='red', label='Real Values')
+    plt.plot(y_true, color='red', label='Real Values')
+    plt.plot(y_pred, color='blue', label='pred Values')
     plt.title(f"Real Values vs Predicted Values")
     plt.legend()
     plt.show()
