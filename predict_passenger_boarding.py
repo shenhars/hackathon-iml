@@ -25,45 +25,33 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     df['direction_1_1'] = df['direction_1_1'].map({True: 1, False: 0})
     df['direction_1_2'] = df['direction_1_2'].map({True: 1, False: 0})
 
-
     #validation of time
     #Convert time columns to datetime
-
-    # df['door_closing_time'] = df['door_closing_time'].fillna(value="00:00:00") #fill missing values with 0 so it would be droped when calling dropna
-    # df['arrival_time'] = df['arrival_time'].fillna(value="00:00:00") #fill missing values with 0 so it would be droped when calling dropna
-    #
-    # df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
-    # df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
-    #
-    # df['arrival_time_valid'] = df['arrival_time'].apply(is_valid_time)
-    # df['door_closing_time_valid'] = df['door_closing_time'].apply(lambda x: is_valid_time(x) if pd.notna(x) else False)
-    #
-    # df = df[df['door_closing_time_valid']]
-    # df = df[df['arrival_time_valid']]
-    # df['door_closing_time'] = pd.to_datetime(df['door_closing_time'])
-    # df['arrival_time'] = pd.to_datetime(df['arrival_time'])
-
+    df = df.loc[df["arrival_time"].dropna().index]
+    df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
+    df['door_closing_time'] = pd.to_datetime(df['door_closing_time'], format='%H:%M:%S')
 
     #if the close time is before the arrival time- remove
-    # df['is_valid'] = df.apply(
-    #     lambda row: row['close_door_time'].dt.hour > row['arrival_time'].dt.hour if pd.notna(row['close_door_time']) else False, axis=1)
-    # df = df[df['is_valid']]
+    df['is_valid'] = df.apply(
+        lambda row: row['door_closing_time'] > row['arrival_time'] if pd.notna(row['door_closing_time']) else False, axis=1)
+    df = df[df['is_valid']]
 
-    #open or not?
-    # df['was_opened'] = df['door_closing_time'].apply(lambda x: 1 if x > 0 else 0)
+    # duration that the door was opend
+    df['door_duration'] = df.apply(
+        lambda row: row['door_closing_time'] - row['arrival_time'] if pd.notna(row['door_closing_time']) else 0,
+        axis=1)
+    df['door_duration'] = df['door_duration'].dt.total_seconds()
 
-    #duration that the door was opend
-    # df['time_door_was_opened'] = df['door_closing_time'] - df['arrival_time']
-    df = df.drop(['arrival_time', 'door_closing_time'], axis=1)
+    df = df.drop(['is_valid', 'arrival_time', 'door_closing_time'], axis=1)
 
 
     #Change the arrival time estimation column from TRUE/FALSE to 1/0
     df['arrival_is_estimated'] = df['arrival_is_estimated'].map({True: 1, False: 0})
 
     # Check if the station ID is valid (is integer)
-    # df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
-    # df = df[df['station_id_valid']]
-    # df = df.drop(['station_id_valid'], axis=1)
+    df['station_id_valid'] = df['station_id'].apply(lambda x: isinstance(x, int))
+    df = df[df['station_id_valid']]
+    df = df.drop(['station_id_valid'], axis=1)
 
     df.dropna()
     y = df["passengers_up"]
