@@ -15,6 +15,7 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     preprocess the data
     """
     df = X.drop_duplicates() #remove duplicates
+    df = split_into_areas(df)
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
              'trip_id_unique'], axis=1, inplace=True)  # remove irelevant columns
 
@@ -32,6 +33,28 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     y = y.loc[df.index]
     # feature_evaluation(df, y)
     return df, y
+
+def split_into_areas(df):
+    num_bins = 17
+
+    # Create bins for longitude and latitude using linspace
+    longitude_bins = np.linspace(df['longitude'].min(), df['longitude'].max(), num_bins)
+    latitude_bins = np.linspace(df['latitude'].min(), df['latitude'].max(), num_bins)
+
+    # Assign each point to a bin
+    df['longitude_bin'] = np.digitize(df['longitude'], bins=longitude_bins, right=True)
+    df['latitude_bin'] = np.digitize(df['latitude'], bins=latitude_bins, right=True)
+
+    # Combine longitude and latitude bin values to create a unique area identifier
+    df['area'] = df['longitude_bin'].astype(str) + '_' + df['latitude_bin'].astype(str)
+
+    # Convert categorical area features to one-hot encoding
+    df = pd.concat([df, pd.get_dummies(df['area'], prefix='area')], axis=1)
+
+    # Drop the original bin columns and the combined identifier
+    df = df.drop(['longitude_bin', 'latitude_bin', 'area'],axis = 1)
+
+    return df
 
 
 def get_trip_duration(df: pd.DataFrame):

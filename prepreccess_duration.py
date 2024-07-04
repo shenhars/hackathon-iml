@@ -30,7 +30,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     agg['mekadem_nipuach_luz'] = df['mekadem_nipuach_luz']
     agg['passengers_continue_menupach'] = df['passengers_continue_menupach']
     # agg['line_id'] = df['line_id']
-    agg = agg[agg['trip_duration'] > 0]
+    agg = agg[agg['trip_duration'] >= 0]
     y = agg['trip_duration']
     agg = agg.drop(['trip_duration', 'trip_id_unique'], axis=1)
     feature_evaluation(agg, y)
