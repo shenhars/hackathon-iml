@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import logging
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import predict_passenger_boarding
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
@@ -38,13 +39,13 @@ if __name__ == '__main__':
 
     is_train = args.train
     seed = 42
-    test_size = .1
+    test_size = .2
 
     print("train" if is_train else "test")
     if is_train:
-        model = LinearRegression()
-        poly = PolynomialFeatures(degree=1, include_bias=False)
-        for k in range(10):
+        for k in range(5, 6):
+            model = LinearRegression()
+            poly = PolynomialFeatures(degree=k, include_bias=False)
             # 1. load the training set (args.training_set)
             df = pd.read_csv(args.training_set, encoding='ISO-8859-8')
             X, y = df.drop("passengers_up", axis=1), df.passengers_up
@@ -52,21 +53,42 @@ if __name__ == '__main__':
             # 2. preprocess the training set
             # TODO: check if need to change rthe order of the preproccess and the split
             preprocess_x, preprocess_y = predict_passenger_boarding._preprocess_data(X, y)
-            print(preprocess_x)
 
             logging.info("preprocessing train...")
             X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size, random_state=seed)
-            X_train, X_valid = np.array(X_train), np.array(X_valid)
+            X_train, X_valid, y_train, y_valid = np.array(X_train), np.array(X_valid), np.array(y_train), np.array(y_valid)
+
             X_train_processed = poly.fit_transform(X_train)
             X_valid_processed = poly.fit_transform(X_valid)
+
             #3. train a model
             logging.info("training...")
             model.fit(X_train_processed, y_train)
 
             y_pred_on_valid = model.predict(X_valid_processed)
             mse = mean_squared_error(y_pred_on_valid, y_valid)
-            print(mse)
+            # take only the 10 first digits of the mse
+            mse = round(mse, 3)
+            print(f"k={k}, mse={mse}")
 
+            # write a code to plot a graph that show in blue the predictions and in red the real values
+            import matplotlib.pyplot as plt
+
+            # Plot the real values
+            plt.plot(y_valid, color='red', label='Real Values')
+
+            # Plot the predictions
+            plt.plot(y_pred_on_valid, color='blue', label='Predicted Values')
+
+            # Add labels and title
+            plt.xlabel('Sample')
+            plt.ylabel('Value')
+            plt.title(f"Real Values vs Predicted Values with k = {k} (MSE = {mse})")
+
+            # Add a legend
+            plt.legend()
+
+            plt.show()
 
     else:
         # 4. load the test set (args.test_set)
