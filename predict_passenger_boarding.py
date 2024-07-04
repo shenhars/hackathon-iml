@@ -120,7 +120,7 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type):
         'ridge': {'alpha': [0.1, 1.0, 10.0]},
         'rf': {'n_estimators': [100, 200]},
         'gb': {'n_estimators': [100, 200], 'learning_rate': [0.01, 0.1]},
-        'xgb': {'n_estimators': [100, 200], 'learning_rate': [0.01, 0.1]},
+        'xgb': {'n_estimators': [100, 200], 'learning_rate': [0.001, 0.01, 0.1]},
         'lgb': {'n_estimators': [100, 200], 'learning_rate': [0.01, 0.1]}
     }
 
