@@ -1,4 +1,6 @@
 import predict_passenger_boarding
+import prepreccess_duration
+import predict_trip_duration
 
 # main.py --training_set ./data/HU.BER/train_bus_schedule.csv --test_set ./data/HU.BER/train_bus_schedule.csv --out ./data/results/output1.csv --train True --model_type base
 """
@@ -11,4 +13,5 @@ for example:
 """
 
 if __name__ == '__main__':
-    predict_passenger_boarding.main()
+    # predict_passenger_boarding.main()
+    predict_trip_duration.main()

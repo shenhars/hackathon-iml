@@ -24,7 +24,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     df.dropna()
     y = df['trip_time']
     df = df.drop(["trip_time"], axis=1)
-    feature_evaluation(df, y)
+    # feature_evaluation(df, y)
     return df, y
 
 
