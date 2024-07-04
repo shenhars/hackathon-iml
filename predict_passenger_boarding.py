@@ -1,32 +1,19 @@
-from datetime import datetime
-import numpy as np
-import pandas as pd
 from typing import Optional
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import *
-from sklearn.metrics import mean_squared_error
-from pprint import pprint
 from argparse import ArgumentParser
 import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import PolynomialFeatures
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
-from pprint import pprint
 
 def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: bool = True):
     """
     preprocess the data
     """
-    # combine x and y
-    # X["passengers_up"] = y
-
     df = X.drop_duplicates() #remove duplicates
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station','alternative',
              'trip_id_unique', 'part'], axis=1, inplace=True)  # remove irelevant columns
@@ -223,17 +210,22 @@ def main():
             print(f"k={k}, mse={mse}")
             plot_predictions(y_valid, y_pred_on_valid, k, mse)
 
+            # save the model
+            with open(f"model_task1.sav", "wb") as f:
+                pickle.dump(model, f)
+
     else:
-        df = load_data(args.test_set)
-        logging.info("preprocessing test...")
-        X_test_processed = preprocess_data(df, is_train=False)
+        with open("model_task1.sav", "rb") as file:
+            model = pickle.load(file)
 
-        logging.info("predicting...")
-        y_pred = model.predict(X_test_processed)
+            df = load_data(args.test_set)
+            logging.info("preprocessing test...")
+            X_test_processed = preprocess_data(df, is_train=False)
 
-        logging.info(f"predictions saved to {args.out}")
-        predictions = pd.DataFrame(
-            {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
-        predictions.to_csv(args.out, index=False)
+            logging.info("predicting...")
+            y_pred = model.predict(X_test_processed)
 
-
+            logging.info(f"predictions saved to {args.out}")
+            predictions = pd.DataFrame(
+                {'trip_id_unique_station': X_test_processed['trip_id_unique_station'], 'passenger_up': y_pred})
+            predictions.to_csv(args.out, index=False)
