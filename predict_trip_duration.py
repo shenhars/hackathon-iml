@@ -19,8 +19,8 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     """
     df = X.drop_duplicates()
     df = split_into_areas(df)
-    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique_station',
-             'trip_id', 'part', 'cluster', 'arrival_is_estimated'], axis=1, inplace=True)  # remove irelevant columns
+    df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique_station'
+                , 'cluster', 'arrival_is_estimated'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
@@ -34,7 +34,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     agg = aggregate_train(df)
     agg = agg[agg['trip_duration'] >= 0]
     y = agg['trip_duration']
-    agg = agg.drop(['trip_duration', 'station_index', 'passengers_up', 'passengers_continue',
+    agg = agg.drop(['trip_id_unique', 'trip_duration', 'station_index', 'passengers_up', 'passengers_continue',
                     'arrival_time', 'door_closing_time', 'station_id'], axis=1)
     return agg, y
 
@@ -64,10 +64,15 @@ def bus_in_the_station(df: pd.DataFrame):
 def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
+
     # stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
     # df = pd.concat([df, stations_ids], axis=1)
 
-    df.drop(['direction', 'line_id'], axis=1, inplace=True)
+    parts = pd.get_dummies(df['part'], prefix='part')
+    df = pd.concat([df, parts], axis=1)
+
+
+    df.drop(['direction', 'line_id', 'part'], axis=1, inplace=True)
 
     boolean_cols = df.select_dtypes(include=['bool']).columns
     df[boolean_cols] = df[boolean_cols].astype(int)
@@ -78,7 +83,7 @@ def preprocess_test(df: pd.DataFrame):
     df = df.drop_duplicates()
     df = split_into_areas(df)
     df.drop(['latitude', 'longitude', 'station_name', 'trip_id_unique_station', 'alternative', 'trip_id_unique_station',
-             'trip_id', 'part', 'cluster', 'arrival_is_estimated'], axis=1, inplace=True)  # remove irelevant columns
+             'cluster', 'arrival_is_estimated'], axis=1, inplace=True)  # remove irelevant columns
 
     df['arrival_time'] = pd.to_datetime(df['arrival_time'], format='%H:%M:%S')
     df = set_categoriel_feature(df)
@@ -86,7 +91,7 @@ def preprocess_test(df: pd.DataFrame):
     df.dropna()
     agg = aggregate_test(df)
     agg = agg.drop(['station_index', 'passengers_up', 'passengers_continue',
-                    'arrival_time', 'door_closing_time', 'station_id'], axis=1)
+                    'arrival_time', 'trip_id_unique', 'door_closing_time', 'station_id'], axis=1)
     return agg
 
 
@@ -226,6 +231,7 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type, poly=None
     return best_model, mse, y_pred_on_valid, mse
 
 
+
 def main():
     parser = ArgumentParser()
     parser.add_argument('--training_set', type=str, required=True, help="path to the training set")
@@ -260,11 +266,9 @@ def main():
 
     # save the model
     with open(f"model_task1.sav", "wb") as f:
-        pass
         pickle.dump(model, f)
 
     with open("model_task1.sav", "rb") as file:
-        pass
         model = pickle.load(file)
         df = load_data(args.test_set)
         logging.info("preprocessing test...")
@@ -274,6 +278,22 @@ def main():
         y_pred = model.predict(X_test_processed)
 
         logging.info(f"predictions saved to {args.out}")
+
+        X_test_processed = X_test_processed.apply(create_trip_id_unique, axis=1)
+
         predictions = pd.DataFrame(
-            {'trip_id_unique': X_test_processed['trip_id_unique'], 'trip_duration_in_minutes': y_pred})
+            {'trip_id_unique': X_test_processed['trip_id'], 'trip_duration_in_minutes': y_pred})
         predictions.to_csv(args.out, index=False)
+
+    # iterate over the df and concatenate the 'trip_id' and the 'part_suffix' to create a new column 'trip_id_unique' with the new value
+
+def create_trip_id_unique(row):
+    part_suffix = ''
+    if row['part_א'] == 1:
+        part_suffix = 'a'
+    elif row['part_ב'] == 1:
+        part_suffix = 'b'
+    elif row['part_ג'] == 1:
+        part_suffix = 'c'
+    row['trip_id'] = f"{int(row['trip_id'])}{part_suffix}"
+    return row
