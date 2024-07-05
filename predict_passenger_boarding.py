@@ -36,6 +36,9 @@ def _preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None, is_train: b
     df.dropna(inplace=True)
     if y is not None:
         y = y.loc[df.index]
+
+    # feature_evaluation(df, y)
+
     return df, y
 
 def get_trip_duration(df: pd.DataFrame):
@@ -55,7 +58,7 @@ def split_into_areas(df):
     df[['longitude_std', 'latitude_std']] = scaler.fit_transform(df[['longitude', 'latitude']])
 
     # Apply K-Means clustering
-    num_clusters = 25
+    num_clusters = 50
     kmeans = KMeans(n_clusters=num_clusters, random_state=0)
     df['cluster_'] = kmeans.fit_predict(df[['longitude_std', 'latitude_std']])
 
@@ -75,6 +78,24 @@ def bus_in_the_station(df: pd.DataFrame):
     df['door_duration'] = (df['door_closing_time'] - df['arrival_time']).dt.total_seconds()
     df = df.drop(['is_valid', 'door_closing_time'], axis=1)
     return df
+
+
+def feature_evaluation(X: pd.DataFrame, y):
+    for feature in X:
+        covariance = np.cov(X[feature], y)[0, 1]
+        std = (np.std(X[feature])*np.std(y))
+        correlation = 0
+        if std != 0:
+            correlation = covariance / std
+
+        plt.figure()
+        plt.scatter(X[feature], y, color='blue', label=f'{feature} Values', s=1)
+        plt.title(f'Correlation Between {feature} Values and Response\nPearson Correlation: {correlation}')
+        plt.xlabel(f'{feature} Values')
+        plt.ylabel('Response Values')
+
+        plt.show()
+
 
 def set_categorical_features(df: pd.DataFrame):
     df = pd.get_dummies(df, columns=['direction', 'cluster'], prefix=['direction', 'cluster'])
@@ -133,15 +154,65 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type):
     mse = mean_squared_error(y_valid, y_pred_on_valid)
     mse = round(mse, 3)
 
-    return best_model, mse, y_pred_on_valid
+    return best_model, mse, y_pred_on_valid, best_model.score(X_valid, y_valid)
 
 
-def plot_predictions(y_true, y_pred, k, mse):
+def plot_variance_between_y_true_and_y_pred(y_true, y_pred):
     plt.plot(y_true, color='red', label='Real Values')
-    plt.plot(y_pred, color='blue', label='Predicted Values')
+    plt.plot(y_pred, color='blue', label='pred Values')
+    plt.title(f"Real Values vs Predicted Values")
+    plt.legend()
+    plt.show()
+
+
+def plot_results(y_true, y_pred, title="Model Predictions vs Actual Values"):
+    """
+    Plots the comparison between the actual values and predicted values.
+
+    Args:
+    - y_true (pd.Series or np.ndarray): True values.
+    - y_pred (pd.Series or np.ndarray): Predicted values.
+    - title (str): Title for the plot.
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    # Line plot
+    axes[0].plot(y_true, color='red', label='Actual Values')
+    axes[0].plot(y_pred, color='blue', label='Predicted Values')
+    axes[0].set_title('Actual vs Predicted Values (Line Plot)')
+    axes[0].set_xlabel('Sample')
+    axes[0].set_ylabel('Value')
+    axes[0].legend()
+
+    # Scatter plot
+    axes[1].scatter(y_true, y_pred, color='purple', s=10)
+    axes[1].set_title('Actual vs Predicted Values (Scatter Plot)')
+    axes[1].set_xlabel('Actual Values')
+    axes[1].set_ylabel('Predicted Values')
+    axes[1].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
+
+    # Error distribution (Histogram)
+    errors = y_pred - y_true
+    axes[2].hist(errors, bins=50, color='gray', edgecolor='black')
+    axes[2].set_title('Prediction Errors (Histogram)')
+    axes[2].set_xlabel('Prediction Error')
+    axes[2].set_ylabel('Frequency')
+
+    plt.suptitle(title)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.show()
+
+
+# Example usage:
+# plot_results(y_valid, y_pred_on_valid)
+
+def plot_predictions(y_true, y_pred, mse):
+    plt.figure()
+    plt.scatter(y_true, color='red', label='Real Values')
+    plt.scatter(y_pred, color='blue', label='Predicted Values')
     plt.xlabel('Sample')
     plt.ylabel('Value')
-    plt.title(f"Real Values vs Predicted Values with k = {k} (MSE = {mse})")
+    plt.title(f"Real Values vs Predicted Values with (MSE = {mse})")
     plt.legend()
     plt.show()
 
@@ -151,17 +222,12 @@ def main():
     parser.add_argument('--training_set', type=str, required=True, help="path to the training set")
     parser.add_argument('--test_set', type=str, required=True, help="path to the test set")
     parser.add_argument('--out', type=str, required=True, help="path of the output file as required in the task description")
-    parser.add_argument('--train', type=bool, required=True, help="is training or test")
-    parser.add_argument('--model_type', type=str, required=True, choices=['base', 'ridge', 'rf', 'gb', 'xgb', 'lgb'], help="type of model to use")
-    parser.add_argument('--bootstrap', type=bool, required=True, help="bootstrap")
+    parser.add_argument('--model_type', type=str, required=False, default='xgb', choices=['base', 'ridge', 'rf', 'gb', 'xgb', 'lgb'], help="type of model to use")
 
     args = parser.parse_args()
 
-    is_train = args.train
     seed = 42
-    test_size = 0.2
-
-    print("train" if is_train else "test")
+    test_size = 0.02
 
     df = load_data(args.training_set)
     X, y = df.drop("passengers_up", axis=1), df.passengers_up
@@ -169,8 +235,11 @@ def main():
     preprocess_x, preprocess_y = _preprocess_data(X, y)
     X_train, X_valid, y_train, y_valid = train_test_split(preprocess_x, preprocess_y, test_size=test_size, random_state=seed)
 
-    model, mse, y_pred_on_valid = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
+    model, mse, y_pred_on_valid, score = train_and_evaluate(X_train, X_valid, y_train, y_valid, args.model_type)
     print(f"MSE: {mse}")
+    print(f"SCORE: {score}")
+
+    plot_results(y_valid, y_pred_on_valid)
 
     with open(f"model_task1_{args.model_type}.sav", "wb") as f:
         pickle.dump(model, f)

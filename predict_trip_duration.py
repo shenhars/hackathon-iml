@@ -65,8 +65,6 @@ def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
 
-    stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
-    df = pd.concat([df, stations_ids], axis=1)
 
     parts = pd.get_dummies(df['part'], prefix='part')
     df = pd.concat([df, parts], axis=1)
@@ -109,7 +107,7 @@ def feature_evaluation(X: pd.DataFrame, y):
         plt.xlabel(f'{feature} Values')
         plt.ylabel('Response Values')
 
-        # plt.show()
+        plt.show()
 
 
 def split_into_areas(df):
@@ -117,15 +115,15 @@ def split_into_areas(df):
     scaler = StandardScaler()
     df[['longitude_std', 'latitude_std']] = scaler.fit_transform(df[['longitude', 'latitude']])
 
-    # Apply K-Means clustering
-    num_clusters = 5
+    # apply K-Means clustering
+    num_clusters = 100
     kmeans = KMeans(n_clusters=num_clusters, random_state=0)
     df['cluster_'] = kmeans.fit_predict(df[['longitude_std', 'latitude_std']])
 
-    # Convert cluster labels to one-hot encoding
+    # convert cluster labels to one-hot encoding
     df = pd.concat([df, pd.get_dummies(df['cluster_'], prefix='cluster')], axis=1)
 
-    # Drop unnecessary columns
+    # drop unnecessary columns
     df = df.drop(['longitude_std', 'latitude_std', 'cluster_'],axis = 1)
 
     return df
@@ -228,7 +226,7 @@ def train_and_evaluate(X_train, X_valid, y_train, y_valid, model_type, poly=None
     mse = mean_squared_error(y_valid, y_pred_on_valid)
     mse = round(mse, 3)
 
-    return best_model, mse, y_pred_on_valid, mse
+    return best_model, mse, y_pred_on_valid, best_model.score(X_valid, y_valid)
 
 
 
@@ -237,17 +235,12 @@ def main():
     parser.add_argument('--training_set', type=str, required=True, help="path to the training set")
     parser.add_argument('--test_set', type=str, required=True, help="path to the test set")
     parser.add_argument('--out', type=str, required=True, help="path of the output file as required in the task description")
-    parser.add_argument('--train', type=bool, required=True, help="is training or test")
-    parser.add_argument('--model_type', type=str, required=True, choices=['base', 'ridge', 'rf', 'gb', 'xgb', 'lgb'], help="type of model to use")
-    parser.add_argument('--bootstrap', type=bool, required=True, help="bootstrap")
+    parser.add_argument('--model_type', type=str, required=False,default='xgb' ,choices=['base', 'ridge', 'rf', 'gb', 'xgb', 'lgb'], help="type of model to use")
 
     args = parser.parse_args()
 
-    is_train = args.train
     seed = 0
-    test_size = 0.2
-
-    print("train" if is_train else "test")
+    test_size = 0.02
 
     df = load_data(args.training_set)
 
