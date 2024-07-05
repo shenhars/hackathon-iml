@@ -34,7 +34,7 @@ def _preprocess_data(X: pd.DataFrame, is_train: bool = True):
     agg = aggregate_train(df)
     agg = agg[agg['trip_duration'] >= 0]
     y = agg['trip_duration']
-    agg = agg.drop(['trip_duration', 'trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
+    agg = agg.drop(['trip_duration', 'station_index', 'passengers_up', 'passengers_continue',
                     'arrival_time', 'door_closing_time', 'station_id'], axis=1)
     return agg, y
 
@@ -85,7 +85,7 @@ def preprocess_test(df: pd.DataFrame):
 
     df.dropna()
     agg = aggregate_test(df)
-    agg = agg.drop(['trip_id_unique', 'station_index', 'passengers_up', 'passengers_continue',
+    agg = agg.drop(['station_index', 'passengers_up', 'passengers_continue',
                     'arrival_time', 'door_closing_time', 'station_id'], axis=1)
     return agg
 
