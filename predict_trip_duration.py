@@ -65,8 +65,8 @@ def set_categoriel_feature(df: pd.DataFrame):
     directions = pd.get_dummies(df['direction'], prefix='direction')
     df = pd.concat([df, directions], axis=1)
 
-    # stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
-    # df = pd.concat([df, stations_ids], axis=1)
+    stations_ids = pd.get_dummies(df['station_id'], prefix='station_id_')
+    df = pd.concat([df, stations_ids], axis=1)
 
     parts = pd.get_dummies(df['part'], prefix='part')
     df = pd.concat([df, parts], axis=1)

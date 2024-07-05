@@ -182,5 +182,5 @@ def main():
 
         y_pred = model.predict(X_test_processed)
 
-        predictions = pd.DataFrame({'trip_id_unique_station': df['trip_id_unique_station'], 'passenger_up': y_pred})
+        predictions = pd.DataFrame({'trip_id_unique_station': df['trip_id_unique_station'], 'passenger_up': np.round(y_pred)})
         predictions.to_csv(args.out, index=False)
